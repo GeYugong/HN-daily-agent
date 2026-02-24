@@ -96,6 +96,8 @@ SUMMARY_PROMPT_TEMPLATE=请阅读以下内容并给出中文摘要。标题：{t
 ```
 
 > `SUMMARY_PROMPT_TEMPLATE` 必须包含 `{title}` 和 `{content}` 这两个占位符。
+>
+> 可直接参考并复制模板：[`SUMMARY_PROMPT_TEMPLATES.md`](./SUMMARY_PROMPT_TEMPLATES.md)
 
 ## 💻 本地开发测试
 
@@ -185,6 +187,8 @@ schedule:
 - `SUMMARY_PROMPT_TEMPLATE`
 
 模板中必须包含 `{title}` 和 `{content}`，系统会把文章标题和正文自动填入。
+
+可选模板见：[`SUMMARY_PROMPT_TEMPLATES.md`](./SUMMARY_PROMPT_TEMPLATES.md)。
 
 ### Q: DeepSeek API 额度不够怎么办？
 
