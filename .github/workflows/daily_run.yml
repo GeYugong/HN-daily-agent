@@ -6,6 +6,16 @@ on:
     - cron: '0 22 * * *'
   # 允许你手动点击按钮触发测试
   workflow_dispatch:
+    inputs:
+      hn_top_count:
+        description: "HN 抓取数量（可选，默认 5）"
+        required: false
+      github_top_count:
+        description: "GitHub Trending 抓取数量（可选，默认 5）"
+        required: false
+      summary_prompt_template:
+        description: "摘要提示词模板（可选，需包含 {title} 和 {content}）"
+        required: false
 
 jobs:
   build:
@@ -30,5 +40,7 @@ jobs:
           # 这里引用 GitHub 仓库里存的密钥
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          HN_TOP_COUNT: ${{ github.event.inputs.hn_top_count || vars.HN_TOP_COUNT }}
+          GITHUB_TOP_COUNT: ${{ github.event.inputs.github_top_count || vars.GITHUB_TOP_COUNT }}
+          SUMMARY_PROMPT_TEMPLATE: ${{ github.event.inputs.summary_prompt_template || vars.SUMMARY_PROMPT_TEMPLATE }}
         run: python news_agent.py
-

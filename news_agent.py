@@ -3,7 +3,15 @@ Hacker News 日报 Agent
 主入口：协调各模块完成每日新闻抓取、总结和推送
 """
 import time
-from config import get_deepseek_key, get_pushplus_token
+from config import (
+    DEFAULT_SUMMARY_PROMPT_TEMPLATE,
+    DEFAULT_TOP_COUNT,
+    get_deepseek_key,
+    get_github_top_count,
+    get_hn_top_count,
+    get_pushplus_token,
+    get_summary_prompt_template,
+)
 from hn_fetcher import HNFetcher
 from github_trending import GitHubTrendingFetcher
 from summarizer import Summarizer
@@ -18,20 +26,33 @@ def main():
         # 1. 初始化配置
         api_key = get_deepseek_key()
         pushplus_token = get_pushplus_token()
+        hn_top_count = get_hn_top_count()
+        github_top_count = get_github_top_count()
+        prompt_template = get_summary_prompt_template()
+
+        if "{title}" not in prompt_template or "{content}" not in prompt_template:
+            print("[配置警告] SUMMARY_PROMPT_TEMPLATE 必须包含 {title} 和 {content}，已回退默认提示词。")
+            prompt_template = DEFAULT_SUMMARY_PROMPT_TEMPLATE
+
+        should_show_customize_tip = (
+            hn_top_count == DEFAULT_TOP_COUNT
+            and github_top_count == DEFAULT_TOP_COUNT
+            and prompt_template == DEFAULT_SUMMARY_PROMPT_TEMPLATE
+        )
 
         # 2. 创建各模块实例
         hn_fetcher = HNFetcher()
         gh_fetcher = GitHubTrendingFetcher()
 
         # 使用 context manager 确保 Summarizer 资源正确释放
-        with Summarizer(api_key) as summarizer:
+        with Summarizer(api_key, prompt_template) as summarizer:
             notifier = WeChatNotifier(pushplus_token)
 
             # 3. 获取 HN 文章列表
-            stories = hn_fetcher.get_top_stories(n=5)
+            stories = hn_fetcher.get_top_stories(n=hn_top_count)
 
             # 获取 GitHub Trending 项目
-            gh_repos = gh_fetcher.get_trending_repos(n=5)
+            gh_repos = gh_fetcher.get_trending_repos(n=github_top_count)
 
             digest_data = []
 
@@ -54,7 +75,11 @@ def main():
 
             # 5. 推送日报（HN 文章 + GitHub Trending）
             if digest_data or gh_repos:
-                notifier.send_digest(digest_data, gh_repos)
+                notifier.send_digest(
+                    digest_data,
+                    gh_repos,
+                    show_customize_tip=should_show_customize_tip,
+                )
             else:
                 print("[系统] 今天没有抓取到有效新闻。")
 

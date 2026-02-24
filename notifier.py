@@ -22,13 +22,14 @@ class WeChatNotifier:
         self.no_proxy = get_no_proxy()
         self.api_url = "http://www.pushplus.plus/send"
 
-    def send_digest(self, hn_articles=None, gh_repos=None):
+    def send_digest(self, hn_articles=None, gh_repos=None, show_customize_tip=False):
         """
         发送日报摘要到微信
 
         Args:
             hn_articles: HN 文章列表，每篇包含 title, url, summary
             gh_repos: GitHub Trending 项目列表，每个包含 name, url, description, stars, language
+            show_customize_tip: 是否在日报末尾提示用户可自定义设置
         """
         if not self.token:
             print("[警告] 未配置 PUSHPLUS_TOKEN，跳过推送。")
@@ -37,7 +38,7 @@ class WeChatNotifier:
         print("[推送] 正在生成日报并推送...")
 
         title = self._format_title()
-        body = self._format_body(hn_articles, gh_repos)
+        body = self._format_body(hn_articles, gh_repos, show_customize_tip)
 
         data = {
             "token": self.token,
@@ -70,7 +71,7 @@ class WeChatNotifier:
         today_str = datetime.now().strftime("%m月%d日")
         return f"{today_str} 技术日报"
 
-    def _format_body(self, hn_articles, gh_repos):
+    def _format_body(self, hn_articles, gh_repos, show_customize_tip):
         """格式化推送正文"""
         body = ""
 
@@ -90,5 +91,15 @@ class WeChatNotifier:
                 body += f"## {idx}. [{repo['name']}]({repo['url']})\n"
                 body += f"- 语言: {repo['language']} | Stars: {repo['stars']:,}\n"
                 body += f"- {repo['description'][:100]}\n\n"
+
+        if show_customize_tip:
+            body += "\n---\n"
+            body += "## ✅ 首次默认配置已完成\n"
+            body += "你现在可以**无需改代码**，直接在 GitHub 仓库中自定义日报参数：\n\n"
+            body += "- `Settings → Secrets and variables → Actions → Variables`\n"
+            body += "- 新建变量 `HN_TOP_COUNT`（例如 `8`）\n"
+            body += "- 新建变量 `GITHUB_TOP_COUNT`（例如 `8`）\n"
+            body += "- 新建变量 `SUMMARY_PROMPT_TEMPLATE`（需包含 `{title}` 和 `{content}`）\n\n"
+            body += "配置后，下一次日报会自动按你的设置生成。\n"
 
         return body
