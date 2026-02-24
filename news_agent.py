@@ -13,13 +13,20 @@ load_dotenv()
 api_key = os.getenv("DEEPSEEK_API_KEY")
 pushplus_token = os.getenv("PUSHPLUS_TOKEN")
 
+REQUEST_TIMEOUT = 10
+JINA_TIMEOUT = 20
+PUSHPLUS_TIMEOUT = 15
+
 # --- 网络配置 ---
 http_client = httpx.Client(trust_env=False)
-client = OpenAI(
-    api_key=api_key, 
-    base_url="https://api.deepseek.com",
-    http_client=http_client
-)
+client = None
+
+if api_key:
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://api.deepseek.com",
+        http_client=http_client
+    )
 
 NO_PROXY = {
     "http": None,
@@ -31,11 +38,11 @@ def get_top_n_stories(n=5):
     """获取 Hacker News 排行榜前 N 名的文章"""
     print(f"[系统] 正在查询 HN 排行榜前 {n} 名...")
     try:
-        top_ids = requests.get("https://hacker-news.firebaseio.com/v0/topstories.json", proxies=NO_PROXY, timeout=10).json()
+        top_ids = requests.get("https://hacker-news.firebaseio.com/v0/topstories.json", proxies=NO_PROXY, timeout=REQUEST_TIMEOUT).json()
         
         stories = []
         for sid in top_ids[:n]:
-            item = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{sid}.json", proxies=NO_PROXY, timeout=10).json()
+            item = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{sid}.json", proxies=NO_PROXY, timeout=REQUEST_TIMEOUT).json()
             if 'url' in item:
                 stories.append({
                     'title': item.get('title'),
@@ -56,7 +63,7 @@ def fetch_content_with_jina(url):
     print(f"[阅读] 正在抓取: {url} ...")
     jina_url = f"https://r.jina.ai/{url}"
     try:
-        response = requests.get(jina_url, proxies=NO_PROXY, timeout=20)
+        response = requests.get(jina_url, proxies=NO_PROXY, timeout=JINA_TIMEOUT)
         return response.text
     except Exception as e:
         print(f"   -> 读取失败: {e}")
@@ -64,6 +71,9 @@ def fetch_content_with_jina(url):
 
 def summarize_article(title, content):
     """单篇文章总结"""
+    if not client:
+        return "未配置 DEEPSEEK_API_KEY，无法生成 AI 总结，请直接阅读原文。"
+
     print(f"[思考] 正在总结: {title} ...")
     
     prompt = f"""
@@ -118,17 +128,21 @@ def send_wechat_digest(content_list):
     }
     
     try:
-        resp = requests.post(url, json=data, proxies=NO_PROXY, timeout=15)
-        if resp.json().get("code") == 200:
+        resp = requests.post(url, json=data, proxies=NO_PROXY, timeout=PUSHPLUS_TIMEOUT)
+        result = resp.json()
+        if result.get("code") == 200:
             print(f"[成功] [{final_title}] 推送完成！")
         else:
-            print(f"[失败] 推送被拒绝: {resp.text}")
+            print(f"[失败] 推送被拒绝: {result}")
     except Exception as e:
         print(f"[错误] 推送网络错误: {e}")
 
 # --- 主程序 ---
 if __name__ == "__main__":
     print("[系统] Agent 开始工作...")
+
+    if not api_key:
+        print("[警告] 未配置 DEEPSEEK_API_KEY，将跳过 AI 总结。")
     
     # 获取前 5 篇
     stories = get_top_n_stories(n=5)
