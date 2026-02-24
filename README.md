@@ -79,9 +79,23 @@ PUSHPLUS_TOKEN   = xxxxxxxxxxxxxxxxxx
 
 1. 点击仓库上方的 `Actions` 标签
 2. 如果看到警告，点击 **"I understand my workflows, go ahead and enable them"**
-3. 点击左侧 `Daily HN Digest` → `Run workflow` 手动测试一次
+3. 点击左侧 `Daily HN Digest` → `Run workflow` 手动测试一次（首次建议保持默认参数）
 
 🎉 完成！以后每天 **北京时间 06:00**，它会自动运行并推送简报到你的微信。
+
+### 5️⃣ 首次默认运行完成后（可选）自定义配置
+
+首次按默认参数（Top 5 + 默认提示词）运行完成后，推送消息末尾会提醒你可自定义，无需改代码。
+
+你可以在 `Settings` → `Secrets and variables` → `Actions` → `Variables` 新建：
+
+```bash
+HN_TOP_COUNT=8
+GITHUB_TOP_COUNT=8
+SUMMARY_PROMPT_TEMPLATE=请阅读以下内容并给出中文摘要。标题：{title}\n正文：{content}\n要求：先一句话结论，再列2-4条关键点。
+```
+
+> `SUMMARY_PROMPT_TEMPLATE` 必须包含 `{title}` 和 `{content}` 这两个占位符。
 
 ## 💻 本地开发测试
 
@@ -157,14 +171,20 @@ schedule:
 
 ### Q: 可以抓取更多文章吗？
 
-**A:** 可以。修改 `news_agent.py` 中的参数：
+**A:** 可以，不用改代码。到 `Settings` → `Secrets and variables` → `Actions` → `Variables` 设置：
 
-```python
-hn_stories = hn_fetcher.get_top_stories(n=5)  # 改为你想要的数量
-gh_repos = gh_fetcher.get_trending_repos(n=5)  # 改为你想要的数量
-```
+- `HN_TOP_COUNT`（默认 5）
+- `GITHUB_TOP_COUNT`（默认 5）
 
 ⚠️ **注意**：增加数量会消耗更多 DeepSeek API 额度，也可能导致推送超时。
+
+### Q: 可以自定义 AI 总结提示词吗？
+
+**A:** 可以，不用改代码。新增 Actions Variable：
+
+- `SUMMARY_PROMPT_TEMPLATE`
+
+模板中必须包含 `{title}` 和 `{content}`，系统会把文章标题和正文自动填入。
 
 ### Q: DeepSeek API 额度不够怎么办？
 
@@ -208,4 +228,3 @@ gh_repos = gh_fetcher.get_trending_repos(n=5)  # 改为你想要的数量
 Made with ❤️ by [GeYugong](https://github.com/GeYugong)
 
 </div>
-
